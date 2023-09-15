@@ -6,27 +6,33 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/robertd2000/orders-api/handler"
+	"github.com/robertd2000/orders-api/repository/order"
 )
 
-func loadRouter() *chi.Mux {
+func (a *App) loadRoutes() {
 	router := chi.NewRouter()
+
 	router.Use(middleware.Logger)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	router.Route("/orders", loadOrderRoutes)
+	router.Route("/orders", a.loadOrderRoutes)
 
-	return router
+	a.router = router
 }
 
-func loadOrderRoutes(router chi.Router) {
-	orderhandler := &handler.Order{}
+func (a *App) loadOrderRoutes(router chi.Router) {
+	orderHandler := &handler.Order{
+		Repo: &order.RedisRepo{
+			Client: a.rdb,
+		},
+	}
 
-	router.Get("/", orderhandler.List)
-	router.Post("/", orderhandler.Create)
-	router.Get("/{id}", orderhandler.GetById)
-	router.Put("/{id}", orderhandler.Update)
-	router.Delete("/{id}", orderhandler.Delete)
+	router.Post("/", orderHandler.Create)
+	router.Get("/", orderHandler.List)
+	router.Get("/{id}", orderHandler.GetById)
+	router.Put("/{id}", orderHandler.Update)
+	router.Delete("/{id}", orderHandler.Delete)
 }

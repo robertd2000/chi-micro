@@ -16,9 +16,10 @@ type App struct {
 
 func New() *App {
 	app := &App{
-		router: loadRouter(),
-		rdb:    redis.NewClient(&redis.Options{}),
+		rdb: redis.NewClient(&redis.Options{}),
 	}
+
+	app.loadRoutes()
 
 	return app
 }
@@ -31,23 +32,23 @@ func (a *App) Start(ctx context.Context) error {
 
 	err := a.rdb.Ping(ctx).Err()
 	if err != nil {
-		return fmt.Errorf("failed with %w", err)
+		return fmt.Errorf("failed to connect to redis: %w", err)
 	}
 
 	defer func() {
 		if err := a.rdb.Close(); err != nil {
-			fmt.Println("failed with %w", err)
+			fmt.Println("failed to close redis", err)
 		}
 	}()
 
-	fmt.Println("Start")
+	fmt.Println("Starting server")
 
 	ch := make(chan error, 1)
 
 	go func() {
 		err = server.ListenAndServe()
 		if err != nil {
-			ch <- fmt.Errorf("failed with %w", err)
+			ch <- fmt.Errorf("failed to start server: %w", err)
 		}
 		close(ch)
 	}()
